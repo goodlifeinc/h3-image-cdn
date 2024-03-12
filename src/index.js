@@ -18,47 +18,48 @@ import {
 } from 'ipx';
 import { createStorage } from 'unstorage';
 import fsLiteDriver from 'unstorage/drivers/fs-lite';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const storage = createStorage({
-    driver: fsLiteDriver({ base: './tmp' })
+    driver: fsLiteDriver({ base: join(__dirname, '../tmp') })
 });
 
 const ipx = createIPX({
-    storage: ipxFSStorage({ dir: '../' }),
+    storage: ipxFSStorage({ dir: join(__dirname, '../images') }),
     httpStorage: ipxHttpStorage({ allowAllDomains: true })
 });
+const ipxHandler = createIPXH3Handler(ipx);
 
 const app = createApp().use(
     '/',
     defineEventHandler({
-        onBeforeResponse: defineResponseMiddleware((event, response) => {
+        onBeforeResponse: defineResponseMiddleware(async(event, response) => {
             if (response.body && !response.body?.error) {
-                // Do anything you want here like logging, collecting metrics, or output compression, etc.
-                storage.setItemRaw(
-                    event.path,
-                    response.body
-                );
+                if (!(await storage.hasItem(event.path))) {
+                    storage.setItemRaw(event.path, response.body);
+                }
                 storage.setItem(
                     event.path + '-headers',
                     getResponseHeaders(event)
                 );
             }
-            // Never return anything from onResponse to avoid to close the connection
         }),
         handler: eventHandler(async(event) => {
             const hasItem = await storage.hasItem(event.path);
             if (hasItem) {
                 const item = await storage.getItemRaw(event.path);
-                setResponseHeaders(
-                    event,
-                    await storage.getItem(event.path + '-headers')
-                );
-                const pragma = getRequestHeader(event, 'Pragma');
-                setResponseStatus(event, pragma === 'no-cache' ? 200 : 304);
-                return item;
+                const headers = await storage.getItem(event.path + '-headers');
+                setResponseHeaders(event, headers);
+                const ifNoneMatch = getRequestHeader(event, 'If-None-Match');
+                const isCache = ifNoneMatch === headers.etag;
+                setResponseStatus(event, isCache ? 304 : 200);
+                return isCache ? null : item;
             }
-            const handler = createIPXH3Handler(ipx);
-            return handler(event);
+            return ipxHandler(event);
         })
     })
 );
