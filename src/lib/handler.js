@@ -20,9 +20,19 @@ import { headerKey, key } from './key.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const getImagesDir = () => {
+    if (process.env.IMAGES_DIR) {
+        if (process.env.IMAGES_DIR.startsWith('.')) {
+            return join(__dirname, process.env.IMAGES_DIR);
+        }
+        return process.env.IMAGES_DIR;
+    }
+    return join(__dirname, '../../images');
+}
+
 const ipx = createIPX({
     storage: ipxFSStorage({
-        dir: join(__dirname, process.env.IMAGES_DIR || '../images')
+        dir: getImagesDir()
     }),
     httpStorage: ipxHttpStorage({
         ...(process.env.DOMAINS

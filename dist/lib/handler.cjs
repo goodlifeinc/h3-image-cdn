@@ -10,9 +10,19 @@ var _documentCurrentScript = typeof document !== 'undefined' ? document.currentS
 const __filename$1 = url.fileURLToPath((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('lib/handler.cjs', document.baseURI).href)));
 const __dirname$1 = path.dirname(__filename$1);
 
+const getImagesDir = () => {
+    if (process.env.IMAGES_DIR) {
+        if (process.env.IMAGES_DIR.startsWith('.')) {
+            return path.join(__dirname$1, process.env.IMAGES_DIR);
+        }
+        return process.env.IMAGES_DIR;
+    }
+    return path.join(__dirname$1, '../../images');
+};
+
 const ipx = ipx$1.createIPX({
     storage: ipx$1.ipxFSStorage({
-        dir: path.join(__dirname$1, process.env.IMAGES_DIR || '../images')
+        dir: getImagesDir()
     }),
     httpStorage: ipx$1.ipxHttpStorage({
         ...(process.env.DOMAINS
