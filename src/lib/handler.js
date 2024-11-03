@@ -20,9 +20,19 @@ import { headerKey, key } from './key.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const getImagesDir = () => {
+    if (process.env.IMAGES_DIR) {
+        if (process.env.IMAGES_DIR.startsWith('.')) {
+            return join(__dirname, process.env.IMAGES_DIR);
+        }
+        return process.env.IMAGES_DIR;
+    }
+    return join(__dirname, '../../images');
+}
+
 const ipx = createIPX({
     storage: ipxFSStorage({
-        dir: join(__dirname, process.env.IMAGES_DIR || '../images')
+        dir: getImagesDir()
     }),
     httpStorage: ipxHttpStorage({
         ...(process.env.DOMAINS
@@ -39,6 +49,17 @@ export default eventHandler(async(event) => {
         !allowedConversions.some((c) => event.path.startsWith(c))
     ) {
         throw createError('Invalid conversion');
+    }
+    if (process.env.PREFIX_WITH_DOMAIN && JSON.parse(process.env.PREFIX_WITH_DOMAIN) === true) {
+        const parts = event.path.split('/').filter(Boolean);
+        const ipxOptsLength = parts[0].length + 1; // mind the leading /
+        const ipxOpts = event.path.substring(0, ipxOptsLength);
+        const rest = event.path.substring(ipxOptsLength);
+        const domainPrefix = `/${process.env.DOMAIN_PREFIX}`;
+        if (!rest.startsWith(domainPrefix)) {
+            event._path = [ipxOpts, domainPrefix, rest].join('');
+            event.node.req.url = event._path;
+        }
     }
     const hasItem = await event.context.storage.hasItem(key(event));
     if (hasItem) {
