@@ -15,6 +15,8 @@ import {
     ipxHttpStorage
 } from 'ipx';
 
+import { headerKey, key } from './key.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -38,12 +40,10 @@ export default eventHandler(async(event) => {
     ) {
         throw createError('Invalid conversion');
     }
-    const hasItem = await event.context.storage.hasItem(event.path);
+    const hasItem = await event.context.storage.hasItem(key(event));
     if (hasItem) {
-        const item = await event.context.storage.getItemRaw(event.path);
-        const headers = await event.context.storage.getItem(
-            event.path + '-headers'
-        );
+        const item = await event.context.storage.getItemRaw(key(event));
+        const headers = await event.context.storage.getItem(headerKey(event));
         setResponseHeaders(event, headers);
         const ifNoneMatch = getRequestHeader(event, 'If-None-Match');
         const isCache = ifNoneMatch === headers.etag;
