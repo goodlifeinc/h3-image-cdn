@@ -1,3 +1,6 @@
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
 import {
     createError,
     createRouter,
@@ -11,25 +14,31 @@ import {
 } from 'h3';
 import {
     createIPX,
+    createIPXH3Handler,
     ipxFSStorage,
-    ipxHttpStorage,
-    createIPXH3Handler
+    ipxHttpStorage
 } from 'ipx';
 import { createStorage } from 'unstorage';
 import fsLiteDriver from 'unstorage/drivers/fs-lite';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const storage = createStorage({
-    driver: fsLiteDriver({ base: join(__dirname, process.env.TEMP_DIR || '../tmp') })
+    driver: fsLiteDriver({
+        base: join(__dirname, process.env.TEMP_DIR || '../tmp')
+    })
 });
 
 const ipx = createIPX({
-    storage: ipxFSStorage({ dir: join(__dirname, process.env.IMAGES_DIR || '../images') }),
-    httpStorage: ipxHttpStorage({ ...process.env.DOMAINS ? { domains: process.env.DOMAINS.split(';') } : { allowAllDomains: true } })
+    storage: ipxFSStorage({
+        dir: join(__dirname, process.env.IMAGES_DIR || '../images')
+    }),
+    httpStorage: ipxHttpStorage({
+        ...(process.env.DOMAINS
+            ? { domains: process.env.DOMAINS.split(';') }
+            : { allowAllDomains: true })
+    })
 });
 const ipxHandler = createIPXH3Handler(ipx);
 
@@ -39,15 +48,16 @@ export const cdnHandler = defineEventHandler({
             if (!(await storage.hasItem(event.path))) {
                 storage.setItemRaw(event.path, response.body);
             }
-            storage.setItem(
-                event.path + '-headers',
-                getResponseHeaders(event)
-            );
+            storage.setItem(event.path + '-headers', getResponseHeaders(event));
         }
     }),
     handler: eventHandler(async(event) => {
-        const allowedConversions = process.env.ALLOWED_CONVERSIONS?.split?.(';');
-        if (allowedConversions?.length && !allowedConversions.some(c => event.path.startsWith(c))) {
+        const allowedConversions =
+            process.env.ALLOWED_CONVERSIONS?.split?.(';');
+        if (
+            allowedConversions?.length &&
+            !allowedConversions.some((c) => event.path.startsWith(c))
+        ) {
             throw createError('Invalid conversion');
         }
         const hasItem = await storage.hasItem(event.path);
@@ -64,7 +74,4 @@ export const cdnHandler = defineEventHandler({
     })
 });
 
-export const cdnRouter = createRouter().use(
-    '/**',
-    cdnHandler
-);
+export const cdnRouter = createRouter().use('/**', cdnHandler);
