@@ -11,8 +11,7 @@
   "scripts": {
     "build": "rimraf ./dist && rollup -c",
     "start": "node ./src/index",
-    "preview": "node ./dist/index.cjs",
-    "postinstall": "npm run build"
+    "preview": "node ./dist/index.cjs"
   },
   "keywords": [],
   "author": "genata93@gmail.com",
