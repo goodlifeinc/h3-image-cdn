@@ -21,8 +21,6 @@ EXPOSE ${PORT}
 
 COPY --from=build /app /app
 
-RUN ls -la
-
 CMD [ "dist/index.cjs" ]
 
 # docker build --build-arg NODE_VERSION=20 -t my/test-app .
