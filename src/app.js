@@ -27,11 +27,9 @@ const getCdnApp = ({
     );
     cdnApp.use(storage);
 
-    if (apiPrefix) {
-        cdnApp.use(apiPrefix, useBase(apiPrefix, cdnRouter.handler));
-        return;
-    }
-    cdnApp.use(cdnRouter);
+    if (apiPrefix) cdnApp.use(apiPrefix, useBase(apiPrefix, cdnRouter.handler));
+    else cdnApp.use(cdnRouter);
+
     return cdnApp;
 };
 
