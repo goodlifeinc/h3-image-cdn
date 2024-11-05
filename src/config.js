@@ -6,18 +6,18 @@ import { defineEventHandler } from 'h3';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const getImagesDir = (config) => {
-    if (config.imagesDir.startsWith('.')) {
-        return join(__dirname, config.imagesDir);
+const getPath = (dir) => {
+    if (dir.startsWith('.')) {
+        return join(__dirname, dir);
     }
-    return config.imagesDir;
+    return dir;
 };
 
 export default (config) =>
     defineEventHandler({
         handler: (event) => {
-            const tempDirPath = join(__dirname, config.tempDir);
-            const imagesDirPath = getImagesDir(config);
+            const tempDirPath = getPath(config.tempDir);
+            const imagesDirPath = getPath(config.imagesDir);
             event.context = {
                 ...event.context,
                 config: {
