@@ -12,7 +12,6 @@ COPY . .
 # Build application
 RUN npm run build
 
-# https://github.com/GoogleContainerTools/distroless/blob/main/nodejs/README.md
 FROM docker.io/node:${NODE_VERSION}-alpine as runtime
 WORKDIR /app
 
