@@ -1,1 +1,1 @@
-GET http://localhost:3000/cdn/embed,f_webp,s_200x200/IMG_20210731_155752.jpg
+GET http://localhost:3000/embed,f_webp,s_200x200/IMG_20210731_155752.jpg

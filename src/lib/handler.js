@@ -1,6 +1,3 @@
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-
 import {
     createError,
     eventHandler,
@@ -17,45 +14,39 @@ import {
 
 import { headerKey, key } from './key.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const ipxFactory = ({ context }) =>
+    createIPX({
+        storage: ipxFSStorage({
+            dir: context.config.imagesDirPath
+        }),
+        httpStorage: ipxHttpStorage({
+            ...(context.config.allowedDomains
+                ? { domains: context.config.allowedDomains.split(';') }
+                : { allowAllDomains: true })
+        })
+    });
 
-const getImagesDir = () => {
-    if (process.env.IMAGES_DIR) {
-        if (process.env.IMAGES_DIR.startsWith('.')) {
-            return join(__dirname, process.env.IMAGES_DIR);
-        }
-        return process.env.IMAGES_DIR;
-    }
-    return join(__dirname, '../../images');
-}
-
-const ipx = createIPX({
-    storage: ipxFSStorage({
-        dir: getImagesDir()
-    }),
-    httpStorage: ipxHttpStorage({
-        ...(process.env.DOMAINS
-            ? { domains: process.env.DOMAINS.split(';') }
-            : { allowAllDomains: true })
-    })
-});
-const ipxHandler = createIPXH3Handler(ipx);
+const ipxHandlerFactory = (event) =>
+    createIPXH3Handler(ipxFactory(event))(event);
 
 export default eventHandler(async(event) => {
-    const allowedConversions = process.env.ALLOWED_CONVERSIONS?.split?.(';');
+    const allowedConversions =
+        event.context.config.allowedConversions?.split?.(';');
     if (
         allowedConversions?.length &&
         !allowedConversions.some((c) => event.path.startsWith(c))
     ) {
         throw createError('Invalid conversion');
     }
-    if (process.env.PREFIX_WITH_DOMAIN && JSON.parse(process.env.PREFIX_WITH_DOMAIN) === true) {
+    if (
+        event.context.config.prefixWithDomain &&
+        JSON.parse(event.context.config.prefixWithDomain) === true
+    ) {
         const parts = event.path.split('/').filter(Boolean);
         const ipxOptsLength = parts[0].length + 1; // mind the leading /
         const ipxOpts = event.path.substring(0, ipxOptsLength);
         const rest = event.path.substring(ipxOptsLength);
-        const domainPrefix = `/${process.env.DOMAIN_PREFIX}`;
+        const domainPrefix = `/${event.context.config.domainPrefix}`;
         if (!rest.startsWith(domainPrefix)) {
             event._path = [ipxOpts, domainPrefix, rest].join('');
             event.node.req.url = event._path;
@@ -71,5 +62,5 @@ export default eventHandler(async(event) => {
         setResponseStatus(event, isCache ? 304 : 200);
         return isCache ? null : item;
     }
-    return ipxHandler(event);
+    return ipxHandlerFactory(event);
 });
